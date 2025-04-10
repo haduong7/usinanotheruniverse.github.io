@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Us in Another Universe</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.cdnfonts.com/css/studio-ghibli" rel="stylesheet">
+  <style>
+    body {
+        margin: 0;
+        font-family: 'Studio Ghibli', serif;
+        background-color: #c0e7c9;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 100%;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-grow: 1;
+        position: relative;
+    }
+
+    button[value="no"] {
+        position: absolute;
+    }
+
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .question {
+      margin-bottom: 2rem;
+      font-family: 'Studio Ghibli', serif;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+      text-align: center;
+    }
+
+    .question img {
+      width: 80%;
+      max-width: 300px;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .choices {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    button {
+      padding: 0.8rem 1.2rem;
+      font-size: 1rem;
+      border-radius: 12px;
+      border: none;
+      background-color: #ffeed6;
+      font-family: 'Studio Ghibli', serif;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #ffe3b0;
+    }
+
+    #result {
+      margin-top: 2rem;
+      padding: 1rem;
+      background-color: #fff0f5;
+      border-radius: 1rem;
+      text-align: center;
+      font-size: 1.4rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #loadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      backdrop-filter: blur(6px);
+      background: rgba(255, 255, 255, 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      visibility: hidden;
+    }
+
+    #loadingBar {
+      width: 60%;
+      height: 20px;
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    #loadingBarFill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #ffd6e0, #ffc0cb, #ffb6c1);
+      animation: fillBar 4s linear forwards;
+    }
+
+    @keyframes fillBar {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+      button {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header id="intro">
+      <h1>Us in Another Universe</h1>
+      <p>A whimsical journey to discover which cartoon world we belong in...</p>
+      <button onclick="startSurvey()">Start ✨</button>
+    </header>
+
+    <section id="survey" class="hidden">
+      <form id="quizForm">
+        <div id="questionContainer"></div>
+        <div id="result" class="hidden"></div>
+      </form>
+    </section>
+  </div>
+
+  <div id="loadingOverlay">
+    <div id="loadingBar">
+      <div id="loadingBarFill"></div>
+    </div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        text: "What’s your ideal weekend activity?",
+        image: "img/sample-question.png",
+        answers: [
+          { text: "Exploring nature", value: "ghibli" },
+          { text: "Training or sparring", value: "anime" },
+          { text: "Pranking or chilling at home", value: "cartoon" },
+        ]
+      },
+      {
+        text: "Final Question: Would you like to be my girlfriend?",
+        image: "img/sample-question.png",
+        answers: [
+          { text: "Yes 💖", value: "yes" },
+          { text: "No 😢", value: "no" },
+        ]
+      }
+    ];
+
+    let currentQuestion = 0;
+    const scores = { ghibli: 0, anime: 0, cartoon: 0 };
+    let noClickCount = 0;
+
+    let noButtonInterval;
+    function startFlyingNoButton() {
+        const noButton = document.querySelector('button[value="no"]');
+        function moveRandomly() {
+        const maxX = window.innerWidth - noButton.offsetWidth;
+        const maxY = window.innerHeight - noButton.offsetHeight;
+        const randX = Math.random() * maxX;
+        const randY = Math.random() * maxY;
+        noButton.style.left = `${randX}px`;
+        noButton.style.top = `${randY}px`;
+        }
+        moveRandomly();
+        noButtonInterval = setInterval(moveRandomly, 1000);
+    }
+
+    function startSurvey() {
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('survey').classList.remove('hidden');
+      showQuestion();
+    }
+
+    function handleAnswer(value) {
+      if (value === 'yes') {
+        showFinalResult(value);
+        return;
+      }
+
+      if (value === 'no') {
+        handleNoClick();
+        return;
+      }
+
+      scores[value]++;
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        showQuestion();
+      }
+    }
+
+    function showQuestion() {
+      const container = document.getElementById('questionContainer');
+      container.innerHTML = '';
+      const q = questions[currentQuestion];
+      const qDiv = document.createElement('div');
+      qDiv.className = 'question';
+
+      const label = document.createElement('label');
+      label.textContent = q.text;
+      qDiv.appendChild(label);
+
+      const image = document.createElement('img');
+      image.src = q.image;
+      image.alt = 'Question Image';
+      qDiv.appendChild(image);
+
+      const choicesDiv = document.createElement('div');
+      choicesDiv.className = 'choices';
+
+      q.answers.forEach(answer => {
+        const btn = document.createElement('button');
+        btn.textContent = answer.text;
+        btn.onclick = (e) => {
+          e.preventDefault();
+          handleAnswer(answer.value);
+        };
+
+        if (answer.value === 'yes') {
+          btn.style.backgroundColor = '#b2f2bb';
+        } else if (answer.value === 'no') {
+          btn.style.backgroundColor = '#ffc9c9';
+        }
+
+        choicesDiv.appendChild(btn);
+      });
+
+      qDiv.appendChild(choicesDiv);
+      container.appendChild(qDiv);
+    }
+
+    function showFinalResult(finalAnswer) {
+      const container = document.getElementById('questionContainer');
+      const resultDiv = document.getElementById('result');
+      container.innerHTML = '';
+      resultDiv.classList.add('hidden');
+
+      const overlay = document.getElementById('loadingOverlay');
+      const fillBar = document.getElementById('loadingBarFill');
+
+      fillBar.style.animation = 'none';
+      void fillBar.offsetWidth;
+      fillBar.style.animation = 'fillBar 4s linear forwards';
+
+      overlay.style.visibility = 'visible';
+
+      setTimeout(() => {
+        window.location.href = 'gallery.html';
+      }, 4000);
+    }
+
+    function handleNoClick() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.classList.remove('hidden');
+      resultDiv.innerHTML = '';
+
+      noClickCount++;
+
+      const buttons = document.querySelectorAll('#questionContainer button');
+      const yesButton = buttons[0];
+      const noButton = buttons[1];
+
+      yesButton.style.transform = `scale(${1 + noClickCount * 0.1})`;
+
+      const messages = [
+        "Are you sure? 😢",
+        "Really sure? 😭",
+        "I'll wait... 💔",
+        "But we’d be so cute together 🥺",
+        "Think about the adventures ✨",
+        "Don't break Totoro's heart 🐻",
+        "Maybe give it one more thought? 😶‍🌫️",
+        "I made this whole site for you... 😳",
+        "What if we’re soulmates in every universe? 🌌",
+        "Last chance before I cry in a field of flowers 🌸😭"
+      ];
+
+      const encouragements = [
+        "😢 Even in another universe, I’d still choose you. But I won’t give up just yet.",
+        "🥺 You're making this hard for me... but I'm still here.",
+        "💗 I can wait a little longer, even if my heart can't.",
+        "🌧️ This hurts a little, but I still believe in us.",
+        "💌 Every love story needs a turning point, right?",
+        "🕊️ In a Ghibli world, you'd already have said yes...",
+        "⏳ I'm staying hopeful. Just a little longer.",
+        "📖 This story could be magical—just say yes?",
+        "🌙 Every universe is better with you in it.",
+        "🌸 My heart’s still holding on. Could you?"
+      ];
+
+      if (noClickCount <= messages.length) {
+        noButton.textContent = messages[noClickCount - 1];
+        resultDiv.innerHTML = encouragements[noClickCount - 1];
+      } else {
+        noButton.textContent = "Okay... I’ll still cherish this moment 💔";
+        resultDiv.innerHTML = "Thank you for exploring this universe with me, even if it ends here.";
+
+        noButton.style.position = 'absolute';
+        noButton.style.transition = 'top 0.1s, left 0.1s';
+
+        const container = document.getElementById('questionContainer');
+        const corners = [
+          [20, 20],
+          [window.innerWidth - 120, 20],
+          [20, window.innerHeight - 120],
+          [window.innerWidth - 120, window.innerHeight - 120]
+        ];
+
+        container.addEventListener('mousemove', (e) => {
+          const triggerZoneSize = 120;
+          const noRect = noButton.getBoundingClientRect();
+          const cursorX = e.clientX;
+          const cursorY = e.clientY;
+
+          const triggerZone = {
+            left: noRect.left - triggerZoneSize,
+            top: noRect.top - triggerZoneSize,
+            right: noRect.right + triggerZoneSize,
+            bottom: noRect.bottom + triggerZoneSize
+          };
+
+          if (
+            cursorX > triggerZone.left &&
+            cursorX < triggerZone.right &&
+            cursorY > triggerZone.top &&
+            cursorY < triggerZone.bottom
+          ) {
+            const safeCorners = corners.filter(([x, y]) => {
+              return Math.abs(cursorX - x) > 200 && Math.abs(cursorY - y) > 200;
+            });
+
+            const [newX, newY] = safeCorners[Math.floor(Math.random() * safeCorners.length)] || corners[0];
+            noButton.style.left = `${newX}px`;
+            noButton.style.top = `${newY}px`;
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>
